@@ -140,3 +140,10 @@ Die Oberfläche gibt es in Deutsch und Englisch. Oben rechts in der Leiste wähl
 **Anleitung übersetzen (optional):** Diese Anleitung als `ANLEITUNG.fr.md` im Ordner `lang/` (oder `docs/`) ablegen – sie erscheint dann unter *Hilfe*, wenn die Sprache aktiv ist. Ohne Übersetzung wird die deutsche Anleitung gezeigt.
 
 Platzhalter wie `{datum}` behalten ihre Namen; für Englisch gibt es Kurzformen (`{date}` …). Datum, Wochentag und Monatsnamen erscheinen in der gewählten Sprache. Möchtest du deine Übersetzung teilen, freut sich das Projekt über einen Pull Request.
+
+## 12. Update
+- **Hinweis:** Gibt es eine neuere Version, erscheint oben ein blauer Balken *„Update verfügbar“* (mit ✕ zum Ausblenden).
+- **Aktualisieren:** *Einstellungen → Update → Jetzt aktualisieren*. LabelPi lädt die neue Version von GitHub, ersetzt die Programmdateien und startet sich neu (ca. 1–2 Minuten, die Seite lädt danach von selbst neu).
+- Vorlagen, Verlauf, Zähler, Passwort und eigene Sprachen bleiben erhalten. Die vorherige Version wird gesichert; *Vorherige Version wiederherstellen* macht das Update rückgängig.
+- Ändert sich `install.sh` (neue Systempakete), erscheint ein Hinweis: dann einmal `bash install.sh` auf dem Pi ausführen.
+- Aus Sicherheitsgründen sollte bei Nutzung im Netzwerk der **Passwortschutz** aktiv sein – ohne Schutz kann jeder im Netzwerk ein Update anstoßen.

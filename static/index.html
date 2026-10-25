@@ -51,13 +51,15 @@ details.fo>summary small{color:var(--mu);font-weight:400}
 @media(min-width:1100px){#td{display:grid;grid-template-columns:minmax(0,1fr) 340px;align-items:start}#td>.bar{grid-column:1/-1}
  #wrap{max-height:calc(100vh - var(--toph,100px) - var(--tbh,52px) - 4px)}
  #panel{position:sticky;top:calc(var(--toph,100px) + var(--tbh,52px));bottom:auto;max-height:calc(100vh - var(--toph,100px) - var(--tbh,52px));box-shadow:none;border-top:0;border-left:1px solid var(--ln);grid-template-columns:repeat(2,1fr);align-content:start}#panel .w{grid-column:1/-1}}
+#upd{display:flex;gap:10px;align-items:center;padding:6px 14px;background:#1f3a5f;border-bottom:1px solid var(--ln);font-size:13px}#upd button{padding:3px 10px;font-size:12px}#upd #updx{border:0;background:none}
+#ulog,#unotes{background:var(--p2);padding:10px;border-radius:8px;white-space:pre-wrap;max-height:220px;overflow:auto;font-size:12px;margin:8px 0}#uv1,#uv2{margin-right:14px}
 </style></head><body>
 <div id="top"><header><b class="logo">🏷️ LabelPi</b><span id="st" title="Drucker"></span><select id="pnt" class="hide"></select><select id="lab"></select>
 <label id="lenw">Länge <input id="len" type="number" min="25" max="900" value="100"> mm</label>
 
 <label>Kopien <input id="cp" type="number" min="1" max="50" value="1" style="width:60px"></label>
 <span class="adv" id="advh"><label><input id="rot" type="checkbox"> gedreht</label><label><input id="dit" type="checkbox"> Dithering</label><label id="cutw" class="hide"><input id="cut" type="checkbox"> Autoschnitt</label><label id="cmw" class="hide"><input id="cmk" type="checkbox"> Schnittmarke</label></span><button class="p" id="pr">Drucken</button><button id="hlp">? Hilfe</button></header>
-<nav class="bar"><button data-t="d" class="on">Designer</button><button data-t="t">Vorlagen</button><button data-t="h">Verlauf</button><button data-t="s">Einstellungen</button><span style="flex:1"></span><label class="advl"><input type="checkbox" id="advc"> Erweiterte Ansicht</label><select id="lng"></select><button id="rb">Neustart</button><button id="sd" class="d">Herunterfahren</button></nav></div>
+<nav class="bar"><button data-t="d" class="on">Designer</button><button data-t="t">Vorlagen</button><button data-t="h">Verlauf</button><button data-t="s">Einstellungen</button><span style="flex:1"></span><label class="advl"><input type="checkbox" id="advc"> Erweiterte Ansicht</label><select id="lng"></select><button id="rb">Neustart</button><button id="sd" class="d">Herunterfahren</button></nav><div id="upd" class="hide"><span id="updt"></span><button id="updb" class="p">Zum Update</button><button id="updx" title="Ausblenden">✕</button></div></div>
 <section id="td"><div class="bar">
 <button data-a="text">＋ Text</button><button data-a="qr">＋ QR</button><button data-a="table">＋ Tabelle</button><button data-a="bc">＋ Barcode</button><button id="addimg">＋ Bild</button>
 <select id="addmore"><option value="">＋ Mehr …</option><option value="pdf">PDF importieren</option><option value="rect">Rechteck</option>
@@ -84,7 +86,12 @@ details.fo>summary small{color:var(--mu);font-weight:400}
 <small class="mu">Mit {lfd} oder {lfd.name} nummeriert LabelPi fortlaufend und merkt sich die nächste Nummer – auch nach Neustart und Gerätewechsel.</small>
 <h3>Sprachen</h3><div class="bar"><button id="lup">Sprachdatei hinzufügen (.json)</button><input type="file" id="lupf" accept=".json" class="hide"><button id="ltpl">Vorlage für neue Sprache herunterladen</button><button id="ldel" class="d">Eigene Sprache entfernen</button></div>
 <small class="mu">Dateiname = Sprachcode (z. B. fr.json). Aufbau und Übersetzung der Anleitung: siehe Hilfe, Abschnitt „Sprachen“.</small>
-<h3>Über</h3><p style="color:var(--mu)">LabelPi · MIT-Lizenz · entstanden in Zusammenarbeit mit Claude (Anthropic)</p></div></section>
+<h3>Update</h3>
+<div class="bar"><span id="uv1"></span><span id="uv2"></span><b id="umsg"></b></div>
+<div class="bar"><button id="uck">Nach Updates suchen</button><button id="uap" class="p hide">Jetzt aktualisieren</button><button id="urb" class="hide">Vorherige Version wiederherstellen</button></div>
+<pre id="unotes" class="hide" data-notr></pre><pre id="ulog" class="hide" data-notr></pre>
+<small class="mu">LabelPi prüft auf GitHub, ob eine neuere Version vorhanden ist. Beim Update werden nur Programmdateien ersetzt – Vorlagen, Verlauf, Zähler und eigene Sprachen bleiben erhalten. Die vorherige Version wird gesichert.</small>
+<h3>Über</h3><p style="color:var(--mu)">LabelPi · MIT-Lizenz · entstanden in Zusammenarbeit mit Claude (Anthropic)</p><p class="mu" id="verl"></p></div></section>
 <dialog id="qdlg"><form method="dialog" id="qf"><h3>QR-Assistent</h3>
 <label>Typ<select id="qt"><option value="url">Link (URL)</option><option value="wifi">WLAN-Zugang</option><option value="vcard">Kontakt (vCard)</option><option value="mail">E-Mail</option><option value="tel">Telefon</option><option value="sms">SMS</option><option value="geo">Standort</option><option value="text">Freitext</option></select></label>
 <div id="qfld"></div><div class="row"><button type="button" onclick="$('#qdlg').close()">Abbrechen</button><button class="p" value="ok">Übernehmen</button></div></form></dialog>
@@ -225,7 +232,7 @@ async function doPrint(say){const pid=$('#pnt').value||'x',lr=ROLL[pid],nm=id=>t
 $('#pr').onclick=T(async()=>{const b=$('#pr');b.disabled=true;b.textContent='Drucke…';try{if(await doPrint(x=>b.textContent=x))b.textContent='Gedruckt ✓'}finally{setPrev();draw();b.disabled=false;setTimeout(()=>b.textContent='Drucken',1500)}});
 $('#sv').onclick=T(async()=>{const r=await ask('Als Vorlage speichern','',lastFolder);if(!r||!r.name)return;lastFolder=r.folder;await post('/api/templates',{name:r.name,folder:r.folder,label:S.label,design:dsg(),png:shot()});alert(tt('Vorlage gespeichert'))});
 $('#nw').onclick=()=>{if(confirm(tt('Aktuelles Design verwerfen?')))fresh(S.label)};
-function go(k){document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t==k));for(const j of['d','t','h','s','f'])$('#t'+j).classList.toggle('hide',j!=k);if(k=='d')sync();if(k=='t')tpl();if(k=='h')hist();if(k=='s')setp();if(k=='f')loadHelp()}
+function go(k){document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t==k));for(const j of['d','t','h','s','f'])$('#t'+j).classList.toggle('hide',j!=k);if(k=='d')sync();if(k=='t')tpl();if(k=='h')hist();if(k=='s'){setp();updUI()}if(k=='f')loadHelp()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
 function open_(d){S=JSON.parse(d);if(!LB.find(l=>l.id==S.label))S.label='62';sel=null;go('d');resetU();sv_()}
 let lastFolder='',hm=false,hs=new Set(),HL=[],TP={};
@@ -406,6 +413,25 @@ const quick=T(async id=>{const d=JSON.parse((await api('/api/templates/'+id)).de
  $('#kfld').oninput=prev;prev();dg.returnValue='';
  dg.onclose=T(async()=>{if(dg.returnValue!='ok')return;const old=$('#cp').value;$('#cp').value=$('#kcp').value;try{await withS(d,async()=>{setR();await doPrint(()=>{})})}finally{$('#cp').value=old}});dg.showModal()});
 Object.entries({'#cmk':'Gestrichelte Linie am Etikettenende zum manuellen Abschneiden (Endlosrollen ohne Cutter)','#pvp':'Vorheriges Etikett der Serie anzeigen','#pvn':'Nächstes Etikett der Serie anzeigen','#lng':'Sprache der Oberfläche'}).forEach(([s,x])=>{const el=$(s);if(el)el.title=x});
+let UPD=null;
+async function updCheck(force){try{UPD=await api('/api/update/check'+(force?'?force=1':''))}catch(e){UPD=null}updUI()}
+function updUI(){const u=UPD;let dis='';try{dis=localStorage.getItem('updx')}catch(e){}
+ $('#upd').classList.toggle('hide',!(u&&u.available&&dis!=u.latest));if(!u)return;
+ $('#updt').textContent=`Update verfügbar: Version ${u.latest} (installiert: ${u.current})`;$('#uv1').textContent=`Installiert: ${u.current}`;
+ $('#uv2').textContent=u.error?'':`Neueste Version: ${u.latest}`;$('#umsg').textContent=u.error?'Prüfung nicht möglich (Internet?)':u.available?'Update verfügbar.':'LabelPi ist auf dem neuesten Stand.';
+ $('#uap').classList.toggle('hide',!u.available);$('#urb').classList.toggle('hide',!u.backup);const n=$('#unotes');n.textContent=u.notes||'';n.classList.toggle('hide',!u.notes||!u.available);$('#verl').textContent=`Version ${u.current}`}
+$('#updx').onclick=()=>{try{localStorage.setItem('updx',UPD.latest)}catch(e){}updUI()};
+$('#updb').onclick=()=>{go('s');$('#uv1').scrollIntoView()};
+$('#uck').onclick=T(async()=>{await updCheck(true)});
+async function pollUpd(target){const lg=$('#ulog');lg.classList.remove('hide');$('#uap').disabled=true;let down=false;
+ for(let i=0;i<300;i++){await new Promise(r=>setTimeout(r,2000));
+  try{const s=await api('/api/update/status');if(s.log.length)lg.textContent=s.log.map(x=>tt(x)).join('\n');
+   if(s.state=='error'){alert(tt('Update fehlgeschlagen')+': '+tt(s.log[s.log.length-1]||''));$('#uap').disabled=false;return}
+   if(down||(s.state=='idle'&&i>2)){await updCheck(true);if(!target||UPD.current==target){alert(tt('Update abgeschlossen'));location.reload();return}}}
+  catch(e){if(!down)lg.textContent+='\n'+tt('LabelPi startet neu …');down=true}}
+ $('#uap').disabled=false}
+$('#uap').onclick=T(async()=>{if(!confirm(tt('LabelPi jetzt auf Version {} aktualisieren? Danach startet das Programm neu (ca. 1–2 Minuten).',UPD.latest)))return;await post('/api/update/apply',{});pollUpd(UPD.latest)});
+$('#urb').onclick=T(async()=>{if(!confirm(tt('Vorherige Version wiederherstellen? Das Programm startet danach neu.')))return;await post('/api/update/rollback',{});pollUpd(null)});
 const resetU=()=>{U=[JSON.stringify(S.els)];RD=[]};
 function commit(){const j=JSON.stringify(S.els);if(j!=U[U.length-1]){U.push(j);if(U.length>25)U.shift();RD=[]}}
 function undo(){if(U.length>1){RD.push(U.pop());S.els=JSON.parse(U[U.length-1]);sel=null;draw();panel()}}
@@ -434,5 +460,5 @@ $('#pdff').onchange=T(async ev=>{const f=ev.target.files[0];ev.target.value='';i
  if(pages)S.ser={mode:'pdf',pages};add({t:'img',pg:pages?1:0,x:0,y:0,w:Math.round(nw*k),h:Math.round(nh*k),src:r.png});sync();sv_()});
 (async()=>{try{await initLang();const c=await api('/api/settings').catch(()=>({}));await loadP(c.printer);await loadL();
  fresh(LB.find(l=>l.id==c.label)?c.label:(LB.find(l=>l.id=='62')?'62':LB[0].id));
- if(c.len)S.len=Math.min(900,Math.max(25,+c.len||100));if(typeof c.rot=='boolean')S.rot=c.rot;ROLL=c.roll||{};$('#cmk').checked=!!c.cmk;CNT=await api('/api/counters').catch(()=>({}));if(c.cw)S.cw=c.cw;if(c.grid)S.grid=c.grid;$('#dit').checked=!!c.dither;$('#cut').checked=!!c.cut;sync();st();setInterval(st,20000)}catch(e){alert(tt('Fehler')+': '+tt(e))}})();
+ if(c.len)S.len=Math.min(900,Math.max(25,+c.len||100));if(typeof c.rot=='boolean')S.rot=c.rot;ROLL=c.roll||{};$('#cmk').checked=!!c.cmk;CNT=await api('/api/counters').catch(()=>({}));if(c.cw)S.cw=c.cw;if(c.grid)S.grid=c.grid;$('#dit').checked=!!c.dither;$('#cut').checked=!!c.cut;sync();st();setInterval(st,20000);updCheck(false);setInterval(()=>updCheck(false),6*3600*1000)}catch(e){alert(tt('Fehler')+': '+tt(e))}})();
 </script></body></html>

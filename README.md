@@ -23,13 +23,13 @@ Bedienung, Platzhalter, Serien, Barcodes: [docs/ANLEITUNG.md](docs/ANLEITUNG.md)
 
 **Ein Befehl** (installiert nach `~/labelpi`, richtet Dienst und USB-Rechte ein):
 ```
-curl -fsSL https://raw.githubusercontent.com/DEIN-USER/labelpi/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/olli1986/labelpi/main/install.sh | bash
 ```
 **Oder manuell:** Ordner per `scp -r` auf den Pi kopieren, dann `cd labelpi && bash install.sh`.
 
 Danach im Browser: `http://<hostname>.local` (z. B. `http://labelpi.local`).
 
-**Update:** `cd ~/labelpi && git pull && sudo systemctl restart labelpi`
+**Update:** in der Weboberfläche unter *Einstellungen → Update* (ein Hinweis erscheint oben, sobald eine neue Version verfügbar ist). Alternativ per `cd ~/labelpi && git pull && sudo systemctl restart labelpi`. Für Maintainer: [docs/RELEASING.md](docs/RELEASING.md)
 
 ## Hinweise
 - Rot/Schwarz-Rollen werden nicht unterstützt (der Designer ist Schwarz/Weiß).

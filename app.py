@@ -1,5 +1,5 @@
 """LabelPi – Etikettendruck für Brother-QL-Drucker per Weboberfläche (MIT-Lizenz)."""
-import base64, glob, io, json, os, re, socket, sqlite3, subprocess, tempfile, threading, time
+import base64, glob, io, json, os, re, shutil, socket, sqlite3, subprocess, sys, tarfile, tempfile, threading, time, urllib.error, urllib.parse, urllib.request
 from flask import Flask, Response, jsonify, request, send_file, send_from_directory
 from PIL import Image
 import barcode
@@ -13,8 +13,8 @@ from brother_ql.backends.helpers import send, discover
 from brother_ql.labels import ALL_LABELS
 from brother_ql.models import ALL_MODELS
 
-VERSION = "0.6.0"
 BASE = os.path.dirname(os.path.abspath(__file__))
+VERSION = open(os.path.join(BASE, "VERSION")).read().strip() if os.path.isfile(os.path.join(BASE, "VERSION")) else "0.7.0"
 DB = os.path.join(BASE, "labels.db")
 app = Flask(__name__, static_folder="static")
 lock = threading.Lock()
@@ -416,6 +416,121 @@ def help_():
         if os.path.isfile(p):
             return Response(markdown.markdown(open(p, encoding="utf-8").read(), extensions=["tables", "fenced_code"]), mimetype="text/html")
     return Response("", mimetype="text/html")
+
+# ---------- Update über die Weboberfläche (GitHub-Releases oder main) ----------
+REPO = os.environ.get("LABELPI_REPO_SLUG", "olli1986/labelpi")
+BK = os.path.join(BASE, ".update-backup")
+PROTECT = {".venv", ".git", "labels.db", "lang", ".update-backup", "__pycache__"}  # bleiben beim Update unberührt
+UPD = {"state": "idle", "log": []}; _chk = {"t": 0, "v": None}
+RESTART = lambda: os._exit(0)  # systemd (Restart=always) startet LabelPi danach neu
+
+def _get(url, timeout=10):
+    return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "LabelPi/" + VERSION}), timeout=timeout)
+
+def _ver(s):
+    n = [int(x) for x in re.findall(r"\d+", s or "")[:3]]; return tuple(n + [0] * (3 - len(n)))
+
+def is_git(): return os.path.isdir(os.path.join(BASE, ".git")) and bool(shutil.which("git"))
+
+def update_info(force=False):
+    if not force and _chk["v"] and time.time() - _chk["t"] < 6 * 3600: return _chk["v"]
+    info = dict(current=VERSION, latest=VERSION, available=False, tag="", notes="", source="", repo=REPO, backup=os.path.isdir(BK), method="git" if is_git() else "archive")
+    try:
+        # Release-Tag ohne API (keine Rate-Limits, z. B. hinter Mobilfunk-NAT): /releases/latest leitet auf /releases/tag/<tag> um
+        m = re.search(r"/releases/tag/([^/?#]+)", _get(f"https://github.com/{REPO}/releases/latest").geturl())
+        if m:
+            tag = urllib.parse.unquote(m.group(1)); info.update(latest=tag.lstrip("vV"), tag=tag, source="release")
+            try:  # Release-Beschreibung (optional, die API kann begrenzt sein)
+                req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/tags/{m.group(1)}", headers={"User-Agent": "LabelPi/" + VERSION, "Accept": "application/vnd.github+json"})
+                info["notes"] = (json.load(urllib.request.urlopen(req, timeout=5)).get("body") or "")[:1500]
+            except Exception: pass
+        else:  # kein Release vorhanden: VERSION-Datei auf main
+            try: v = _get(f"https://raw.githubusercontent.com/{REPO}/main/VERSION").read().decode().strip()
+            except urllib.error.HTTPError:
+                v = re.search(r'VERSION\s*=\s*"([^"]+)"', _get(f"https://raw.githubusercontent.com/{REPO}/main/app.py").read().decode()).group(1)
+            info.update(latest=v, source="main")
+        info["available"] = _ver(info["latest"]) > _ver(VERSION)
+        _chk.update(t=time.time(), v=info)
+    except Exception as e: info["error"] = str(e)[:200]
+    return info
+
+def _copy_in(src, skip=PROTECT):
+    for n in os.listdir(src):
+        if n in skip: continue
+        a, b = os.path.join(src, n), os.path.join(BASE, n)
+        if os.path.isdir(a): shutil.copytree(a, b, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
+        else: shutil.copy2(a, b)
+
+def _restore():
+    if os.path.isdir(BK): _copy_in(BK, {"__pycache__"})
+
+def pip_install():
+    r = subprocess.run([sys.executable, "-m", "pip", "install", "-r", os.path.join(BASE, "requirements.txt"), "--disable-pip-version-check"], capture_output=True, text=True, timeout=1800)
+    if r.returncode: raise RuntimeError((r.stderr or r.stdout)[-300:])
+
+def _read(p, mode="r"):
+    try:
+        with open(p, mode) as f: return f.read()
+    except OSError: return None
+
+def do_update():
+    log = UPD["log"]
+    try:
+        info = update_info(True)
+        if info.get("error") or not info["available"]: raise RuntimeError(info.get("error") or "Keine neuere Version verfügbar")
+        req, inst = os.path.join(BASE, "requirements.txt"), os.path.join(BASE, "install.sh")
+        old_req, old_inst = _read(req), _read(inst, "rb")
+        log.append("Sichere aktuelle Version …")
+        shutil.rmtree(BK, ignore_errors=True); os.makedirs(BK)
+        for n in os.listdir(BASE):
+            if n not in PROTECT:
+                a = os.path.join(BASE, n)
+                if os.path.isdir(a): shutil.copytree(a, os.path.join(BK, n), ignore=shutil.ignore_patterns("__pycache__"))
+                else: shutil.copy2(a, BK)
+        log.append(f"Lade Version {info['latest']} herunter …")
+        if is_git():
+            log.append("Hole Änderungen per git …")
+            for cmd in (["fetch", "--tags", "--force", "origin"], ["reset", "--hard", info["tag"] or "origin/main"]):
+                r = subprocess.run(["git", "-C", BASE] + cmd, capture_output=True, text=True, timeout=300)
+                if r.returncode: raise RuntimeError(r.stderr[-300:])
+        else:
+            with tempfile.TemporaryDirectory() as t:
+                url = f"https://codeload.github.com/{REPO}/tar.gz/refs/" + (f"tags/{info['tag']}" if info["tag"] else "heads/main")
+                tgz = os.path.join(t, "src.tgz")
+                with open(tgz, "wb") as f: f.write(_get(url, 120).read())
+                log.append("Entpacke …")
+                with tarfile.open(tgz) as tf:
+                    for m in tf.getmembers():
+                        if not (m.isfile() or m.isdir()) or os.path.normpath(m.name).startswith(("/", "..")): continue
+                        try: tf.extract(m, t, filter="data")
+                        except TypeError: tf.extract(m, t)
+                root = next((os.path.join(t, d) for d in os.listdir(t) if os.path.isfile(os.path.join(t, d, "app.py"))), None)
+                if not root or not os.path.isfile(os.path.join(root, "static", "index.html")): raise RuntimeError("Die heruntergeladene Datei enthält kein LabelPi")
+                log.append("Kopiere neue Dateien …"); _copy_in(root)
+        if _read(req) != old_req:
+            log.append("Installiere Python-Pakete (kann einige Minuten dauern) …")
+            try: pip_install()
+            except Exception as e: _restore(); raise RuntimeError("Installation der Python-Pakete fehlgeschlagen, vorherige Version wiederhergestellt: " + str(e))
+        if _read(inst, "rb") != old_inst: log.append("Hinweis: install.sh hat sich geändert – bitte danach einmal „bash install.sh“ ausführen (Systempakete).")
+        log.append("Fertig – LabelPi startet neu …"); UPD["state"] = "done"; threading.Timer(2, RESTART).start()
+    except Exception as e:
+        log.append(f"Fehler: {e}"); UPD["state"] = "error"
+
+@app.get("/api/update/check")
+def u_check(): return jsonify(update_info(request.args.get("force") == "1"))
+
+@app.post("/api/update/apply")
+def u_apply():
+    if UPD["state"] == "running": return jsonify(error="Update läuft bereits"), 409
+    UPD.update(state="running", log=[]); threading.Thread(target=do_update, daemon=True).start(); return jsonify(ok=True)
+
+@app.get("/api/update/status")
+def u_status(): return jsonify(state=UPD["state"], log=UPD["log"], version=VERSION)
+
+@app.post("/api/update/rollback")
+def u_rollback():
+    if not os.path.isdir(BK): return jsonify(error="Keine Sicherung vorhanden"), 404
+    _restore(); UPD.update(state="done", log=["Vorherige Version wiederhergestellt – LabelPi startet neu …"]); threading.Timer(2, RESTART).start(); return jsonify(ok=True)
 
 @app.get("/api/backup")
 def backup():

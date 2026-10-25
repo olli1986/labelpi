@@ -1,8 +1,8 @@
 #!/bin/bash
 # LabelPi-Installation auf Raspberry Pi OS Lite.
-# Ein-Befehl-Variante:  curl -fsSL https://raw.githubusercontent.com/DEIN-USER/labelpi/main/install.sh | bash
+# Ein-Befehl-Variante:  curl -fsSL https://raw.githubusercontent.com/olli1986/labelpi/main/install.sh | bash
 set -e
-REPO="${LABELPI_REPO:-https://github.com/DEIN-USER/labelpi.git}"
+REPO="${LABELPI_REPO:-https://github.com/olli1986/labelpi.git}"
 if [ -f "$(dirname "$0")/app.py" ]; then
   cd "$(dirname "$0")"
 else

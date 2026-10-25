@@ -28,7 +28,7 @@ Klappt `.local` nicht, die IP in den Geräteinfos des Hotspots nachsehen.
 ## 3. Dateien auf den Pi bringen
 **Variante A (ein Befehl, empfohlen):** direkt auf dem Pi
 ```
-curl -fsSL https://raw.githubusercontent.com/DEIN-USER/labelpi/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/olli1986/labelpi/main/install.sh | bash
 ```
 Damit sind Schritt 3 und 4 erledigt, weiter mit Schritt 5.
 

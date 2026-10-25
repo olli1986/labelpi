@@ -140,3 +140,10 @@ The interface is available in German and English. Choose the language in the bar
 **Translating this guide (optional):** put it into the `lang/` folder (or `docs/`) as `ANLEITUNG.fr.md` – it is then shown under *Help* when that language is active. Without a translation the German guide is shown.
 
 Placeholders such as `{datum}` keep their names; English short forms exist (`{date}` …). Dates, weekdays and month names appear in the selected language. If you would like to share your translation, the project welcomes a pull request.
+
+## 12. Update
+- **Notice:** If a newer version exists, a blue bar *“Update available”* appears at the top (✕ dismisses it).
+- **Updating:** *Settings → Update → Update now*. LabelPi downloads the new version from GitHub, replaces the program files and restarts (about 1–2 minutes; the page reloads by itself).
+- Templates, history, counters, password and custom languages are kept. The previous version is backed up; *Restore previous version* undoes the update.
+- If `install.sh` changes (new system packages) a note appears: run `bash install.sh` once on the Pi.
+- For security, **password protection** should be on when used in a network – without it anyone on the network can trigger an update.
