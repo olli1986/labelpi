@@ -1,0 +1,8 @@
+flask
+pillow
+qrcode
+brother_ql
+pyusb
+python-barcode
+ppf.datamatrix
+markdown
